@@ -31,7 +31,7 @@ func (s *Server) PrepareNewPeer(device string) (wireguard.Peer, error) {
 		for i := range deviceIPs {
 			freeIP, err := s.peers.GetAvailableIp(device, deviceIPs[i])
 			if err != nil {
-				return wireguard.Peer{}, errors.WithMessage(err, "failed to get available IP addresses"+fmt.Sprintf("(IP pool: %v)", deviceIPs))
+				return wireguard.Peer{}, errors.WithMessage(err, "failed to get available IP addresses")
 			}
 			peerIPs[i] = freeIP
 		}
@@ -209,7 +209,7 @@ func (s *Server) WriteWireGuardConfigFile(device string) error {
 	}
 
 	dev := s.peers.GetDevice(device)
-	cfg, err := dev.GetConfigFile(s.peers.GetActivePeers(device), s.config.Core.WGExoprterFriendlyNames)
+	cfg, err := dev.GetConfigFile(s.peers.GetActivePeers(device))
 	if err != nil {
 		return errors.WithMessage(err, "failed to get config file")
 	}
@@ -253,6 +253,10 @@ func (s *Server) CreateUser(user users.User, device string) error {
 // UpdateUser updates the user in the database. If the user is marked as deleted, it will get remove from the database.
 // Also, if the user is re-enabled, all it's linked WireGuard peers will be activated again.
 func (s *Server) UpdateUser(user users.User) error {
+	if user.DeletedAt.Valid {
+		return s.DeleteUser(user)
+	}
+
 	currentUser := s.users.GetUserUnscoped(user.Email)
 
 	// Hash user password (if set)
@@ -271,12 +275,7 @@ func (s *Server) UpdateUser(user users.User) error {
 		return errors.WithMessage(err, "failed to update user in manager")
 	}
 
-	// Set to deleted (disabled) if user's deletedAt date is not empty
-	if user.DeletedAt.Valid {
-		return s.DeleteUser(user)
-	}
-
-	// Otherwise, if user was deleted (disabled), reactivate it's peers
+	// If user was deleted (disabled), reactivate it's peers
 	if currentUser.DeletedAt.Valid {
 		for _, peer := range s.peers.GetPeersByMail(user.Email) {
 			now := time.Now()
@@ -290,38 +289,24 @@ func (s *Server) UpdateUser(user users.User) error {
 	return nil
 }
 
-// DeleteUser soft-deletes the user from the database (disable the user).
+// DeleteUser removes the user from the database.
 // Also, if the user has linked WireGuard peers, they will be deactivated.
 func (s *Server) DeleteUser(user users.User) error {
+	currentUser := s.users.GetUserUnscoped(user.Email)
+
 	// Update in database
-	if err := s.users.DeleteUser(&user, true); err != nil {
-		return errors.WithMessage(err, "failed to disable user in manager")
-	}
-
-	// Disable users peers
-	for _, peer := range s.peers.GetPeersByMail(user.Email) {
-		now := time.Now()
-		peer.DeactivatedAt = &now
-		if err := s.UpdatePeer(peer, now); err != nil {
-			logrus.Errorf("failed to update deactivated peer %s for %s: %v", peer.PublicKey, user.Email, err)
-		}
-	}
-
-	return nil
-}
-
-// HardDeleteUser removes the user from the database.
-// Also, if the user has linked WireGuard peers, they will be deleted.
-func (s *Server) HardDeleteUser(user users.User) error {
-	// Update in database
-	if err := s.users.DeleteUser(&user, false); err != nil {
+	if err := s.users.DeleteUser(&user); err != nil {
 		return errors.WithMessage(err, "failed to delete user in manager")
 	}
 
-	// remove all linked peers
-	for _, peer := range s.peers.GetPeersByMail(user.Email) {
-		if err := s.DeletePeer(peer); err != nil {
-			logrus.Errorf("failed to delete peer %s for %s: %v", peer.PublicKey, user.Email, err)
+	// If user was active, disable it's peers
+	if !currentUser.DeletedAt.Valid {
+		for _, peer := range s.peers.GetPeersByMail(user.Email) {
+			now := time.Now()
+			peer.DeactivatedAt = &now
+			if err := s.UpdatePeer(peer, now); err != nil {
+				logrus.Errorf("failed to update deactivated peer %s for %s: %v", peer.PublicKey, user.Email, err)
+			}
 		}
 	}
 
