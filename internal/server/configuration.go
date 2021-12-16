@@ -67,7 +67,6 @@ type Config struct {
 		EditableKeys            bool   `yaml:"editableKeys" envconfig:"EDITABLE_KEYS"`
 		CreateDefaultPeer       bool   `yaml:"createDefaultPeer" envconfig:"CREATE_DEFAULT_PEER"`
 		SelfProvisioningAllowed bool   `yaml:"selfProvisioning" envconfig:"SELF_PROVISIONING"`
-		WGExporterFriendlyNames bool   `yaml:"wgExporterFriendlyNames" envconfig:"WG_EXPORTER_FRIENDLY_NAMES"`
 		LdapEnabled             bool   `yaml:"ldapEnabled" envconfig:"LDAP_ENABLED"`
 		SessionSecret           string `yaml:"sessionSecret" envconfig:"SESSION_SECRET"`
 		LogoUrl                 string `yaml:"logoUrl" envconfig:"LOGO_URL"`
@@ -109,14 +108,13 @@ func NewConfig() *Config {
 	cfg.LDAP.PhoneAttribute = "telephoneNumber"
 	cfg.LDAP.GroupMemberAttribute = "memberOf"
 	cfg.LDAP.AdminLdapGroup = "CN=WireGuardAdmins,OU=_O_IT,DC=COMPANY,DC=LOCAL"
-	cfg.LDAP.LoginFilter = "(&(objectClass=organizationalPerson)({{login_field}}={{login_identifier}})(!userAccountControl:1.2.840.113556.1.4.803:=2))"
+	cfg.LDAP.LoginFilter = "(&(objectClass=organizationalPerson)(mail={{login_identifier}})(!userAccountControl:1.2.840.113556.1.4.803:=2))"
 	cfg.LDAP.SyncFilter = "(&(objectClass=organizationalPerson)(!userAccountControl:1.2.840.113556.1.4.803:=2)(mail=*))"
 
 	cfg.WG.DeviceNames = []string{"wg0"}
 	cfg.WG.DefaultDeviceName = "wg0"
 	cfg.WG.ConfigDirectoryPath = "/etc/wireguard"
 	cfg.WG.ManageIPAddresses = true
-	cfg.WG.UserManagePeers = false
 	cfg.Email.Host = "127.0.0.1"
 	cfg.Email.Port = 25
 	cfg.Email.Encryption = common.MailEncryptionNone
