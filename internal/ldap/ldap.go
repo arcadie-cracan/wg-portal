@@ -22,7 +22,8 @@ func Open(cfg *Config) (*ldap.Conn, error) {
 	var tlsConfig *tls.Config
 
 	if cfg.LdapCertConn {
-		certPlain, err := ioutil.ReadFile(cfg.LdapTlsCert)
+
+		cert_plain, err := ioutil.ReadFile(cfg.LdapTlsCert)
 		if err != nil {
 			return nil, errors.WithMessage(err, "failed to load the certificate")
 
@@ -33,13 +34,15 @@ func Open(cfg *Config) (*ldap.Conn, error) {
 			return nil, errors.WithMessage(err, "failed to load the key")
 		}
 
-		certX509, err := tls.X509KeyPair(certPlain, key)
+		cert_x509, err := tls.X509KeyPair(cert_plain, key)
 		if err != nil {
 			return nil, errors.WithMessage(err, "failed X509")
 
 		}
-		tlsConfig = &tls.Config{Certificates: []tls.Certificate{certX509}}
+		tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert_x509}}
+
 	} else {
+
 		tlsConfig = &tls.Config{InsecureSkipVerify: !cfg.CertValidation}
 	}
 
@@ -89,6 +92,7 @@ func FindAllUsers(cfg *Config) ([]RawLdapData, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to open ldap connection")
 	}
+	defer Close(client)
 
 	// Search all users
 	attrs := []string{"dn", cfg.EmailAttribute, cfg.EmailAttribute, cfg.FirstNameAttribute, cfg.LastNameAttribute,
