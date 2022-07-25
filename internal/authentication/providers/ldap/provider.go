@@ -70,6 +70,11 @@ func (provider Provider) Login(ctx *authentication.AuthContext) (string, error) 
 	// Search for the given username
 	attrs := []string{"dn", provider.config.EmailAttribute}
 	loginFilter := strings.Replace(provider.config.LoginFilter, "{{login_identifier}}", username, -1)
+	if strings.Contains(username, "@") {
+		loginFilter = strings.Replace(loginFilter, "{{login_field}}", "mail", -1)
+	} else {
+		loginFilter = strings.Replace(loginFilter, "{{login_field}}", "sAMAccountName", -1)
+	}
 	searchRequest := ldap.NewSearchRequest(
 		provider.config.BaseDN,
 		ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
