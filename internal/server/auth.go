@@ -3,9 +3,9 @@ package server
 import (
 	"sort"
 
+	"github.com/arcadie-cracan/wg-portal/internal/authentication"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
 	"github.com/gin-gonic/gin"
-	"github.com/h44z/wg-portal/internal/authentication"
-	"github.com/h44z/wg-portal/internal/users"
 	"github.com/sirupsen/logrus"
 )
 

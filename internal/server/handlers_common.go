@@ -4,9 +4,9 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/arcadie-cracan/wg-portal/internal/common"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
 	"github.com/gin-gonic/gin"
-	"github.com/h44z/wg-portal/internal/common"
-	"github.com/h44z/wg-portal/internal/users"
 	"github.com/pkg/errors"
 )
 
@@ -135,16 +135,16 @@ func (s *Server) GetUserIndex(c *gin.Context) {
 	peers := s.peers.GetSortedPeersForEmail(currentSession.SortedBy["userpeers"], currentSession.SortDirection["userpeers"], currentSession.Email)
 
 	c.HTML(http.StatusOK, "user_index.html", gin.H{
-		"Route":       			c.Request.URL.Path,
-		"Alerts":      			GetFlashes(c),
-		"Session":     			currentSession,
-		"Static":      			s.getStaticData(),
-		"Peers":       			peers,
-		"TotalPeers":  			len(peers),
-		"Users":       			[]users.User{*s.users.GetUser(currentSession.Email)},
-		"Device":      			s.peers.GetDevice(currentSession.DeviceName),
-		"DeviceNames": 			s.GetDeviceNames(),
-		"UserManagePeers": 	s.config.WG.UserManagePeers,
+		"Route":           c.Request.URL.Path,
+		"Alerts":          GetFlashes(c),
+		"Session":         currentSession,
+		"Static":          s.getStaticData(),
+		"Peers":           peers,
+		"TotalPeers":      len(peers),
+		"Users":           []users.User{*s.users.GetUser(currentSession.Email)},
+		"Device":          s.peers.GetDevice(currentSession.DeviceName),
+		"DeviceNames":     s.GetDeviceNames(),
+		"UserManagePeers": s.config.WG.UserManagePeers,
 	})
 }
 

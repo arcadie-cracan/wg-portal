@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"git.prolicht.digital/pub/healthcheck"
-	"github.com/h44z/wg-portal/internal/server"
+	"github.com/arcadie-cracan/wg-portal/internal/server"
 	"github.com/sirupsen/logrus"
 )
 
@@ -28,10 +28,12 @@ func main() {
 	// start health check service on port 11223
 	healthcheck.New(healthcheck.WithContext(ctx)).Start()
 
+	//myprofile := profile.Start(profile.CPUProfile)
 	service := server.Server{}
 	if err := service.Setup(ctx); err != nil {
 		logrus.Fatalf("setup failed: %v", err)
 	}
+	//myprofile.Stop()
 
 	// Attach signal handlers to context
 	go func() {

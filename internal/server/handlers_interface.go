@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/arcadie-cracan/wg-portal/internal/common"
+	"github.com/arcadie-cracan/wg-portal/internal/wireguard"
 	"github.com/gin-gonic/gin"
-	"github.com/h44z/wg-portal/internal/common"
-	"github.com/h44z/wg-portal/internal/wireguard"
 	csrf "github.com/utrack/gin-csrf"
 )
 

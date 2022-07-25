@@ -3,10 +3,14 @@ package ldap
 import (
 	"crypto/tls"
 	"io/ioutil"
+	"sync"
 
 	"github.com/go-ldap/ldap/v3"
 	"github.com/pkg/errors"
 )
+
+var lock = &sync.Mutex{}
+var ldapConn *ldap.Conn
 
 type RawLdapData struct {
 	DN            string
@@ -18,8 +22,7 @@ func Open(cfg *Config) (*ldap.Conn, error) {
 	var tlsConfig *tls.Config
 
 	if cfg.LdapCertConn {
-
-		cert_plain, err := ioutil.ReadFile(cfg.LdapTlsCert)
+		certPlain, err := ioutil.ReadFile(cfg.LdapTlsCert)
 		if err != nil {
 			return nil, errors.WithMessage(err, "failed to load the certificate")
 
@@ -30,51 +33,62 @@ func Open(cfg *Config) (*ldap.Conn, error) {
 			return nil, errors.WithMessage(err, "failed to load the key")
 		}
 
-		cert_x509, err := tls.X509KeyPair(cert_plain, key)
+		certX509, err := tls.X509KeyPair(certPlain, key)
 		if err != nil {
 			return nil, errors.WithMessage(err, "failed X509")
 
 		}
-		tlsConfig = &tls.Config{Certificates: []tls.Certificate{cert_x509}}
-
+		tlsConfig = &tls.Config{Certificates: []tls.Certificate{certX509}}
 	} else {
-
 		tlsConfig = &tls.Config{InsecureSkipVerify: !cfg.CertValidation}
 	}
 
-	conn, err := ldap.DialURL(cfg.URL, ldap.DialWithTLSConfig(tlsConfig))
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to connect to LDAP")
-	}
+	lock.Lock()
+	defer lock.Unlock()
 
-	if cfg.StartTLS {
-		// Reconnect with TLS
-		err = conn.StartTLS(tlsConfig)
+	if ldapConn == nil {
+		conn, err := ldap.DialURL(cfg.URL, ldap.DialWithTLSConfig(tlsConfig))
 		if err != nil {
-			return nil, errors.Wrap(err, "failed to star TLS on connection")
+			return nil, errors.Wrap(err, "failed to connect to LDAP")
+		}
+		ldapConn = conn
+		if cfg.StartTLS {
+			// Reconnect with TLS
+			err := ldapConn.StartTLS(tlsConfig)
+			if err != nil {
+				ldapConn.Close()
+				ldapConn = nil
+				return nil, errors.Wrap(err, "failed to star TLS on connection")
+			}
+		}
+
+		err = ldapConn.Bind(cfg.BindUser, cfg.BindPass)
+		if err != nil {
+			ldapConn.Close()
+			ldapConn = nil
+			return nil, errors.Wrap(err, "failed to bind to LDAP")
 		}
 	}
 
-	err = conn.Bind(cfg.BindUser, cfg.BindPass)
-	if err != nil {
-		return nil, errors.Wrap(err, "failed to bind to LDAP")
-	}
-
-	return conn, nil
+	return ldapConn, nil
 }
 
-func Close(conn *ldap.Conn) {
-	if conn != nil {
-		conn.Close()
+func Close() {
+	if ldapConn != nil {
+		ldapConn.Close()
 	}
+	ldapConn = nil
 }
 
 func FindAllUsers(cfg *Config) ([]RawLdapData, error) {
-	client, err := Open(cfg)
+	var sr *ldap.SearchResult
+	var err error
+	var client *ldap.Conn
+
+	client, err = Open(cfg)
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to open ldap connection")
 	}
-	defer Close(client)
 
 	// Search all users
 	attrs := []string{"dn", cfg.EmailAttribute, cfg.EmailAttribute, cfg.FirstNameAttribute, cfg.LastNameAttribute,
@@ -85,9 +99,18 @@ func FindAllUsers(cfg *Config) ([]RawLdapData, error) {
 		cfg.SyncFilter, attrs, nil,
 	)
 
-	sr, err := client.Search(searchRequest)
+	sr, err = client.SearchWithPaging(searchRequest, 100)
 	if err != nil {
-		return nil, errors.Wrapf(err, "failed to search in ldap")
+		// try to close and re-open the connection
+		Close()
+		client, err = Open(cfg)
+		if err != nil {
+			return nil, errors.WithMessage(err, "failed to open ldap connection")
+		}
+		sr, err = client.SearchWithPaging(searchRequest, 100)
+		if err != nil {
+			return nil, errors.Wrapf(err, "failed to search in ldap")
+		}
 	}
 
 	tmpData := make([]RawLdapData, 0, len(sr.Entries))

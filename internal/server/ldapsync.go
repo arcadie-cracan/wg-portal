@@ -4,8 +4,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/h44z/wg-portal/internal/ldap"
-	"github.com/h44z/wg-portal/internal/users"
+	"github.com/arcadie-cracan/wg-portal/internal/ldap"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 

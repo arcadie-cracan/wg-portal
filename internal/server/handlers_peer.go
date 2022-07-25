@@ -8,10 +8,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arcadie-cracan/wg-portal/internal/common"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
+	"github.com/arcadie-cracan/wg-portal/internal/wireguard"
 	"github.com/gin-gonic/gin"
-	"github.com/h44z/wg-portal/internal/common"
-	"github.com/h44z/wg-portal/internal/users"
-	"github.com/h44z/wg-portal/internal/wireguard"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/tatsushid/go-fastping"
@@ -420,11 +420,11 @@ func (s *Server) PostUserCreatePeer(c *gin.Context) {
 		formPeer = currentSession.FormData.(wireguard.Peer)
 	}
 
-	formPeer.Email = currentSession.Email;
-	formPeer.Identifier = currentSession.Email;
-	formPeer.DeviceType = wireguard.DeviceTypeServer;
-  formPeer.PrivateKey = "";
-	
+	formPeer.Email = currentSession.Email
+	formPeer.Identifier = currentSession.Email
+	formPeer.DeviceType = wireguard.DeviceTypeServer
+	formPeer.PrivateKey = ""
+
 	if err := c.ShouldBind(&formPeer); err != nil {
 		_ = s.updateFormInSession(c, formPeer)
 		SetFlashMessage(c, "failed to bind form data: "+err.Error(), "danger")
@@ -452,7 +452,6 @@ func (s *Server) PostUserCreatePeer(c *gin.Context) {
 func (s *Server) GetUserEditPeer(c *gin.Context) {
 	peer := s.peers.GetPeerByKey(c.Query("pkey"))
 
-	
 	currentSession, err := s.setFormInSession(c, peer)
 	if err != nil {
 		s.GetHandleError(c, http.StatusInternalServerError, "Session error", err.Error())
@@ -461,7 +460,7 @@ func (s *Server) GetUserEditPeer(c *gin.Context) {
 
 	if peer.Email != currentSession.Email {
 		s.GetHandleError(c, http.StatusUnauthorized, "No permissions", "You don't have permissions to view this resource!")
-		return;
+		return
 	}
 
 	c.HTML(http.StatusOK, "user_edit_client.html", gin.H{
@@ -486,7 +485,7 @@ func (s *Server) PostUserEditPeer(c *gin.Context) {
 
 	if currentPeer.Email != currentSession.Email {
 		s.GetHandleError(c, http.StatusUnauthorized, "No permissions", "You don't have permissions to view this resource!")
-		return;
+		return
 	}
 
 	disabled := c.PostForm("isdisabled") != ""
@@ -494,7 +493,7 @@ func (s *Server) PostUserEditPeer(c *gin.Context) {
 	if disabled && currentPeer.DeactivatedAt == nil {
 		currentPeer.DeactivatedAt = &now
 	}
-	
+
 	// Update in database
 	if err := s.UpdatePeer(currentPeer, now); err != nil {
 		_ = s.updateFormInSession(c, currentPeer)

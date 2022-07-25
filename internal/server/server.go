@@ -14,15 +14,15 @@ import (
 	"strings"
 	"time"
 
+	wgportal "github.com/arcadie-cracan/wg-portal"
+	ldapprovider "github.com/arcadie-cracan/wg-portal/internal/authentication/providers/ldap"
+	passwordprovider "github.com/arcadie-cracan/wg-portal/internal/authentication/providers/password"
+	"github.com/arcadie-cracan/wg-portal/internal/common"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
+	"github.com/arcadie-cracan/wg-portal/internal/wireguard"
 	"github.com/gin-contrib/sessions"
 	"github.com/gin-contrib/sessions/memstore"
 	"github.com/gin-gonic/gin"
-	wgportal "github.com/h44z/wg-portal"
-	ldapprovider "github.com/h44z/wg-portal/internal/authentication/providers/ldap"
-	passwordprovider "github.com/h44z/wg-portal/internal/authentication/providers/password"
-	"github.com/h44z/wg-portal/internal/common"
-	"github.com/h44z/wg-portal/internal/users"
-	"github.com/h44z/wg-portal/internal/wireguard"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	ginlogrus "github.com/toorop/gin-logrus"
@@ -219,6 +219,8 @@ func (s *Server) Run() {
 	srv := &http.Server{
 		Addr:    s.config.Core.ListeningAddress,
 		Handler: s.server,
+		//		ReadTimeout:    60 * time.Second,
+		//		WriteTimeout:   60 * time.Second,
 	}
 
 	go func() {

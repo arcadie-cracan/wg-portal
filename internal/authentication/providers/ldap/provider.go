@@ -5,11 +5,11 @@ import (
 	"io/ioutil"
 	"strings"
 
+	"github.com/arcadie-cracan/wg-portal/internal/authentication"
+	ldapconfig "github.com/arcadie-cracan/wg-portal/internal/ldap"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
 	"github.com/gin-gonic/gin"
 	"github.com/go-ldap/ldap/v3"
-	"github.com/h44z/wg-portal/internal/authentication"
-	ldapconfig "github.com/h44z/wg-portal/internal/ldap"
-	"github.com/h44z/wg-portal/internal/users"
 	"github.com/pkg/errors"
 )
 

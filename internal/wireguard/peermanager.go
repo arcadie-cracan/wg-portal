@@ -12,10 +12,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arcadie-cracan/wg-portal/internal/common"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
-	"github.com/h44z/wg-portal/internal/common"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"github.com/skip2/go-qrcode"
@@ -188,6 +188,7 @@ func (p Peer) GetConfigFile(device Device) ([]byte, error) {
 		"Peer":      p,
 		"Interface": device,
 	})
+
 	if err != nil {
 		return nil, errors.Wrap(err, "failed to execute client template")
 	}
@@ -443,8 +444,9 @@ func (m *PeerManager) initFromPhysicalInterface() error {
 		}
 
 		// Check if entries already exist in database, if not, create them
+		dev := m.GetDevice(deviceName)
 		for _, peer := range peers {
-			if err := m.validateOrCreatePeer(deviceName, peer); err != nil {
+			if err := m.validateOrCreatePeer(dev, peer); err != nil {
 				return errors.WithMessagef(err, "failed to validate peer %s for device %s", peer.PublicKey, deviceName)
 			}
 		}
@@ -455,11 +457,9 @@ func (m *PeerManager) initFromPhysicalInterface() error {
 
 // validateOrCreatePeer checks if the given WireGuard peer already exists in the database, if not, the peer entry will be created
 // assumption: server mode is used
-func (m *PeerManager) validateOrCreatePeer(device string, wgPeer wgtypes.Peer) error {
+func (m *PeerManager) validateOrCreatePeer(dev Device, wgPeer wgtypes.Peer) error {
 	peer := Peer{}
 	m.db.Where("public_key = ?", wgPeer.PublicKey.String()).FirstOrInit(&peer)
-
-	dev := m.GetDevice(device)
 
 	if peer.PublicKey == "" { // peer not found, create
 		peer.UID = fmt.Sprintf("u%x", md5.Sum([]byte(wgPeer.PublicKey.String())))
@@ -484,7 +484,7 @@ func (m *PeerManager) validateOrCreatePeer(device string, wgPeer wgtypes.Peer) e
 			IPs[i] = ip.String()
 		}
 		peer.SetIPAddresses(IPs...)
-		peer.DeviceName = device
+		peer.DeviceName = dev.DeviceName
 
 		res := m.db.Create(&peer)
 		if res.Error != nil {
@@ -493,7 +493,7 @@ func (m *PeerManager) validateOrCreatePeer(device string, wgPeer wgtypes.Peer) e
 	}
 
 	if peer.DeviceName == "" {
-		peer.DeviceName = device
+		peer.DeviceName = dev.DeviceName
 		res := m.db.Save(&peer)
 		if res.Error != nil {
 			return errors.Wrapf(res.Error, "failed to update autodetected peer %s", peer.PublicKey)
@@ -542,13 +542,21 @@ func (m *PeerManager) validateOrCreateDevice(dev wgtypes.Device, ipAddresses []s
 }
 
 // populatePeerData enriches the peer struct with WireGuard live data like last handshake, ...
-func (m *PeerManager) populatePeerData(peer *Peer) {
+func (m *PeerManager) populatePeerData(peer *Peer, wgPeer *wgtypes.Peer, wgDevices map[string]Device) {
+	var wgDevice Device
+
 	// Set config file
-	tmpCfg, _ := peer.GetConfigFile(m.GetDevice(peer.DeviceName))
+	if device, found := wgDevices[peer.DeviceName]; found {
+		wgDevice = device
+	} else {
+		wgDevice = m.GetDevice(peer.DeviceName)
+	}
+
+	tmpCfg, _ := peer.GetConfigFile(wgDevice)
 	peer.Config = string(tmpCfg)
 
 	// set data from WireGuard interface
-	peer.Peer, _ = m.wg.GetPeer(peer.DeviceName, peer.PublicKey)
+	peer.Peer = wgPeer
 	peer.LastHandshake = "never"
 	peer.LastHandshakeTime = "Never connected, or user is disabled."
 	if peer.Peer != nil {
@@ -567,6 +575,34 @@ func (m *PeerManager) populatePeerData(peer *Peer) {
 		peer.LastHandshakeTime = peer.Peer.LastHandshakeTime.Format(time.UnixDate)
 	}
 	peer.IsOnline = false
+}
+
+func (m *PeerManager) populatePeerDataFromList(dbPeers []Peer, wgPeers []wgtypes.Peer, wgDevices map[string]Device) {
+	sort.Slice(dbPeers, func(i, j int) bool {
+		return dbPeers[i].PublicKey < dbPeers[j].PublicKey
+	})
+
+	sort.Slice(wgPeers, func(i, j int) bool {
+		return wgPeers[i].PublicKey.String() < wgPeers[j].PublicKey.String()
+	})
+
+	i := 0
+	j := 0
+	for i < len(dbPeers) && j < len(wgPeers) {
+		if dbPeers[i].PublicKey == wgPeers[j].PublicKey.String() {
+			m.populatePeerData(&dbPeers[i], &wgPeers[j], wgDevices)
+			i++
+			j++
+		} else if dbPeers[i].PublicKey < wgPeers[j].PublicKey.String() {
+			for i < len(dbPeers) && dbPeers[i].PublicKey < wgPeers[j].PublicKey.String() {
+				i++
+			}
+		} else {
+			for j < len(wgPeers) && dbPeers[i].PublicKey > wgPeers[j].PublicKey.String() {
+				j++
+			}
+		}
+	}
 }
 
 // fixPeerDefaultData tries to fill all required fields for the given peer
@@ -596,35 +632,40 @@ func (m *PeerManager) populateDeviceData(device *Device) {
 }
 
 func (m *PeerManager) GetAllPeers(device string) []Peer {
-	peers := make([]Peer, 0)
-	m.db.Where("device_name = ?", device).Find(&peers)
-
-	for i := range peers {
-		m.populatePeerData(&peers[i])
+	wgDevices := make(map[string]Device)
+	for _, deviceName := range m.wg.Cfg.DeviceNames {
+		wgDevices[deviceName] = m.GetDevice(deviceName)
 	}
 
-	return peers
+	dbPeers := make([]Peer, 0)
+	m.db.Where("device_name = ?", device).Find(&dbPeers)
+	wgPeers, _ := m.wg.GetPeerList(device)
+
+	m.populatePeerDataFromList(dbPeers, wgPeers, wgDevices)
+
+	return dbPeers
 }
 
 func (m *PeerManager) GetActivePeers(device string) []Peer {
-	peers := make([]Peer, 0)
-	m.db.Where("device_name = ? AND deactivated_at IS NULL", device).Find(&peers)
-
-	for i := range peers {
-		m.populatePeerData(&peers[i])
+	wgDevices := make(map[string]Device)
+	for _, deviceName := range m.wg.Cfg.DeviceNames {
+		wgDevices[deviceName] = m.GetDevice(deviceName)
 	}
 
-	return peers
+	dbPeers := make([]Peer, 0)
+	m.db.Where("device_name = ? AND deactivated_at IS NULL", device).Find(&dbPeers)
+	wgPeers, _ := m.wg.GetPeerList(device)
+
+	m.populatePeerDataFromList(dbPeers, wgPeers, wgDevices)
+
+	return dbPeers
 }
 
 func (m *PeerManager) GetFilteredAndSortedPeers(device, sortKey, sortDirection, search string) []Peer {
-	peers := make([]Peer, 0)
-	m.db.Where("device_name = ?", device).Find(&peers)
+	peers := m.GetAllPeers(device)
 
 	filteredPeers := make([]Peer, 0, len(peers))
 	for i := range peers {
-		m.populatePeerData(&peers[i])
-
 		if search == "" ||
 			strings.Contains(peers[i].Email, strings.ToLower(search)) ||
 			strings.Contains(peers[i].Identifier, search) ||
@@ -639,17 +680,26 @@ func (m *PeerManager) GetFilteredAndSortedPeers(device, sortKey, sortDirection, 
 }
 
 func (m *PeerManager) GetSortedPeersForEmail(sortKey, sortDirection, email string) []Peer {
-	email = strings.ToLower(email)
-	peers := make([]Peer, 0)
-	m.db.Where("email = ?", email).Find(&peers)
-
-	for i := range peers {
-		m.populatePeerData(&peers[i])
+	wgDevices := make(map[string]Device)
+	for _, deviceName := range m.wg.Cfg.DeviceNames {
+		wgDevices[deviceName] = m.GetDevice(deviceName)
 	}
 
-	sortPeers(sortKey, sortDirection, peers)
+	email = strings.ToLower(email)
+	dbPeers := make([]Peer, 0)
+	m.db.Where("email = ?", email).Find(&dbPeers)
 
-	return peers
+	var wgPeers []wgtypes.Peer
+	for _, deviceName := range m.wg.Cfg.DeviceNames {
+		peerList, _ := m.wg.GetPeerList(deviceName)
+		wgPeers = append(wgPeers, peerList...)
+	}
+
+	m.populatePeerDataFromList(dbPeers, wgPeers, wgDevices)
+
+	sortPeers(sortKey, sortDirection, dbPeers)
+
+	return dbPeers
 }
 
 func sortPeers(sortKey string, sortDirection string, peers []Peer) {
@@ -701,21 +751,36 @@ func (m *PeerManager) GetDevice(device string) Device {
 }
 
 func (m *PeerManager) GetPeerByKey(publicKey string) Peer {
+	wgDevices := make(map[string]Device)
+	for _, deviceName := range m.wg.Cfg.DeviceNames {
+		wgDevices[deviceName] = m.GetDevice(deviceName)
+	}
+
 	peer := Peer{}
 	m.db.Where("public_key = ?", publicKey).FirstOrInit(&peer)
-	m.populatePeerData(&peer)
+	wgPeer, _ := m.wg.GetPeer(peer.DeviceName, peer.PublicKey)
+	if wgPeer != nil {
+		m.populatePeerData(&peer, wgPeer, wgDevices)
+	}
 	return peer
 }
 
 func (m *PeerManager) GetPeersByMail(mail string) []Peer {
+	wgDevices := make(map[string]Device)
 	mail = strings.ToLower(mail)
-	var peers []Peer
-	m.db.Where("email = ?", mail).Find(&peers)
-	for i := range peers {
-		m.populatePeerData(&peers[i])
+	var dbPeers []Peer
+	m.db.Where("email = ?", mail).Find(&dbPeers)
+
+	var wgPeers []wgtypes.Peer
+	for _, deviceName := range m.wg.Cfg.DeviceNames {
+		peerList, _ := m.wg.GetPeerList(deviceName)
+		wgPeers = append(wgPeers, peerList...)
+		wgDevices[deviceName] = m.GetDevice(deviceName)
 	}
 
-	return peers
+	m.populatePeerDataFromList(dbPeers, wgPeers, wgDevices)
+
+	return dbPeers
 }
 
 // ---- Database helpers -----

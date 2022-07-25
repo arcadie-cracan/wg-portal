@@ -8,8 +8,8 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/h44z/wg-portal/internal/users"
-	"github.com/h44z/wg-portal/internal/wireguard"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
+	"github.com/arcadie-cracan/wg-portal/internal/wireguard"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/crypto/bcrypt"
@@ -31,7 +31,7 @@ func (s *Server) PrepareNewPeer(device string) (wireguard.Peer, error) {
 		for i := range deviceIPs {
 			freeIP, err := s.peers.GetAvailableIp(device, deviceIPs[i])
 			if err != nil {
-				return wireguard.Peer{}, errors.WithMessage(err, "failed to get available IP addresses")
+				return wireguard.Peer{}, errors.WithMessage(err, "failed to get available IP addresses" + fmt.Sprintf("(IP pool: %v)", deviceIPs))
 			}
 			peerIPs[i] = freeIP
 		}

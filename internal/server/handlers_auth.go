@@ -6,9 +6,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/arcadie-cracan/wg-portal/internal/authentication"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
 	"github.com/gin-gonic/gin"
-	"github.com/h44z/wg-portal/internal/authentication"
-	"github.com/h44z/wg-portal/internal/users"
 	"github.com/sirupsen/logrus"
 	csrf "github.com/utrack/gin-csrf"
 )

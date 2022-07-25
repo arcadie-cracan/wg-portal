@@ -5,9 +5,9 @@ import (
 	"reflect"
 	"runtime"
 
-	"github.com/h44z/wg-portal/internal/common"
-	"github.com/h44z/wg-portal/internal/ldap"
-	"github.com/h44z/wg-portal/internal/wireguard"
+	"github.com/arcadie-cracan/wg-portal/internal/common"
+	"github.com/arcadie-cracan/wg-portal/internal/ldap"
+	"github.com/arcadie-cracan/wg-portal/internal/wireguard"
 	"github.com/kelseyhightower/envconfig"
 	"github.com/pkg/errors"
 	"github.com/sirupsen/logrus"

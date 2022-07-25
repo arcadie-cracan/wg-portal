@@ -7,10 +7,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/arcadie-cracan/wg-portal/internal/authentication"
+	"github.com/arcadie-cracan/wg-portal/internal/common"
+	"github.com/arcadie-cracan/wg-portal/internal/users"
 	"github.com/gin-gonic/gin"
-	"github.com/h44z/wg-portal/internal/authentication"
-	"github.com/h44z/wg-portal/internal/common"
-	"github.com/h44z/wg-portal/internal/users"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
