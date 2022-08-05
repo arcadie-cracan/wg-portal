@@ -217,10 +217,10 @@ func (s *Server) Run() {
 
 	// Run web service
 	srv := &http.Server{
-		Addr:    s.config.Core.ListeningAddress,
-		Handler: s.server,
-		//		ReadTimeout:    60 * time.Second,
-		//		WriteTimeout:   60 * time.Second,
+		Addr:         s.config.Core.ListeningAddress,
+		Handler:      s.server,
+		ReadTimeout:  60 * time.Second,
+		WriteTimeout: 60 * time.Second,
 	}
 
 	go func() {

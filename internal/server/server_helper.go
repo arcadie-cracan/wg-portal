@@ -31,7 +31,7 @@ func (s *Server) PrepareNewPeer(device string) (wireguard.Peer, error) {
 		for i := range deviceIPs {
 			freeIP, err := s.peers.GetAvailableIp(device, deviceIPs[i])
 			if err != nil {
-				return wireguard.Peer{}, errors.WithMessage(err, "failed to get available IP addresses" + fmt.Sprintf("(IP pool: %v)", deviceIPs))
+				return wireguard.Peer{}, errors.WithMessage(err, "failed to get available IP addresses"+fmt.Sprintf("(IP pool: %v)", deviceIPs))
 			}
 			peerIPs[i] = freeIP
 		}
@@ -209,7 +209,7 @@ func (s *Server) WriteWireGuardConfigFile(device string) error {
 	}
 
 	dev := s.peers.GetDevice(device)
-	cfg, err := dev.GetConfigFile(s.peers.GetActivePeers(device), s.config.Core.WGExoprterFriendlyNames)
+	cfg, err := dev.GetConfigFile(s.peers.GetActivePeers(device), s.config.Core.WGExporterFriendlyNames)
 	if err != nil {
 		return errors.WithMessage(err, "failed to get config file")
 	}
