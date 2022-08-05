@@ -184,7 +184,8 @@
                         <td><span data-toggle="tooltip" data-placement="left" title="" data-original-title="{{$p.LastHandshakeTime}}">{{$p.LastHandshake}}</span></td>
                         <td>
                             {{if eq $.Session.IsAdmin true}}
-                                <a href="/admin/peer/edit?pkey={{$p.PublicKey}}" title="Edit peer"><i class="fas fa-cog"></i></a>
+                            <a href="/admin/peer/edit?pkey={{$p.PublicKey}}" title="Edit peer"><i class="fas fa-cog"></i></a>
+                            <a href="/admin/peer/delete?pkey={{$p.PublicKey}}" title="Delete peer" onclick="return confirm('Are you sure you want to delete peer {{$p.Identifier}}?')"><i class="fas fa-trash"></i></a>
                             {{end}}
                         </td>
                     </tr>
