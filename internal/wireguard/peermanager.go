@@ -23,9 +23,7 @@ import (
 	"gorm.io/gorm"
 )
 
-//
 // CUSTOM VALIDATORS ----------------------------------------------------------------------------
-//
 var cidrList validator.Func = func(fl validator.FieldLevel) bool {
 	cidrListStr := fl.Field().String()
 
@@ -33,6 +31,18 @@ var cidrList validator.Func = func(fl validator.FieldLevel) bool {
 	for i := range cidrList {
 		_, _, err := net.ParseCIDR(cidrList[i])
 		if err != nil {
+			return false
+		}
+	}
+	return true
+}
+
+var dnsList validator.Func = func(fl validator.FieldLevel) bool {
+	dnsListStr := fl.Field().String()
+	dnsList := common.ParseStringList(dnsListStr)
+	for i := range dnsList {
+		ip := net.ParseIP(dnsList[i])
+		if ip == nil && !govalidator.IsDNSName(dnsList[i]) {
 			return false
 		}
 	}
@@ -55,6 +65,7 @@ func init() {
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		_ = v.RegisterValidation("cidrlist", cidrList)
 		_ = v.RegisterValidation("iplist", ipList)
+		_ = v.RegisterValidation("dnsList", dnsList)
 	}
 }
 
@@ -89,7 +100,7 @@ type Peer struct {
 	// Misc. WireGuard Settings
 	PrivateKey string `form:"privkey" binding:"omitempty,base64"`
 	IPsStr     string `form:"ip" binding:"cidrlist,required_if=DeviceType server"` // a comma separated list of IPs of the client
-	DNSStr     string `form:"dns" binding:"iplist"`                                // comma separated list of the DNS servers for the client
+	DNSStr     string `form:"dns" binding:"dnsList"`                               // comma separated list of the DNS servers for the client
 	// Global Device Settings (can be ignored, only make sense if device is in server mode)
 	Mtu int `form:"mtu" binding:"gte=0,lte=1500"`
 
@@ -256,7 +267,7 @@ type Device struct {
 	PublicKey    string `form:"pubkey" binding:"required,base64"`
 	Mtu          int    `form:"mtu" binding:"gte=0,lte=1500"`   // the interface MTU, wg-quick addition
 	IPsStr       string `form:"ip" binding:"required,cidrlist"` // comma separated list of the IPs of the client, wg-quick addition
-	DNSStr       string `form:"dns" binding:"iplist"`           // comma separated list of the DNS servers of the client, wg-quick addition
+	DNSStr       string `form:"dns" binding:"dnsList"`          // comma separated list of the DNS servers of the client, wg-quick addition
 	RoutingTable string `form:"routingtable"`                   // the routing table, wg-quick addition
 	PreUp        string `form:"preup"`                          // pre up script, wg-quick addition
 	PostUp       string `form:"postup"`                         // post up script, wg-quick addition
@@ -444,9 +455,8 @@ func (m *PeerManager) initFromPhysicalInterface() error {
 		}
 
 		// Check if entries already exist in database, if not, create them
-		dev := m.GetDevice(deviceName)
 		for _, peer := range peers {
-			if err := m.validateOrCreatePeer(dev, peer); err != nil {
+			if err := m.validateOrCreatePeer(deviceName, peer); err != nil {
 				return errors.WithMessagef(err, "failed to validate peer %s for device %s", peer.PublicKey, deviceName)
 			}
 		}
@@ -457,9 +467,11 @@ func (m *PeerManager) initFromPhysicalInterface() error {
 
 // validateOrCreatePeer checks if the given WireGuard peer already exists in the database, if not, the peer entry will be created
 // assumption: server mode is used
-func (m *PeerManager) validateOrCreatePeer(dev Device, wgPeer wgtypes.Peer) error {
+func (m *PeerManager) validateOrCreatePeer(device string, wgPeer wgtypes.Peer) error {
 	peer := Peer{}
 	m.db.Where("public_key = ?", wgPeer.PublicKey.String()).FirstOrInit(&peer)
+
+	dev := m.GetDevice(device)
 
 	if peer.PublicKey == "" { // peer not found, create
 		peer.UID = fmt.Sprintf("u%x", md5.Sum([]byte(wgPeer.PublicKey.String())))
@@ -484,7 +496,7 @@ func (m *PeerManager) validateOrCreatePeer(dev Device, wgPeer wgtypes.Peer) erro
 			IPs[i] = ip.String()
 		}
 		peer.SetIPAddresses(IPs...)
-		peer.DeviceName = dev.DeviceName
+		peer.DeviceName = device
 
 		res := m.db.Create(&peer)
 		if res.Error != nil {
@@ -493,7 +505,7 @@ func (m *PeerManager) validateOrCreatePeer(dev Device, wgPeer wgtypes.Peer) erro
 	}
 
 	if peer.DeviceName == "" {
-		peer.DeviceName = dev.DeviceName
+		peer.DeviceName = device
 		res := m.db.Save(&peer)
 		if res.Error != nil {
 			return errors.Wrapf(res.Error, "failed to update autodetected peer %s", peer.PublicKey)
