@@ -420,10 +420,10 @@ func (s *Server) PostUserCreatePeer(c *gin.Context) {
 		formPeer = currentSession.FormData.(wireguard.Peer)
 	}
 
-	formPeer.Email = currentSession.Email;
-	formPeer.Identifier = currentSession.Email;
-	formPeer.DeviceType = wireguard.DeviceTypeServer;
-	
+	formPeer.Email = currentSession.Email
+	formPeer.Identifier = currentSession.Email
+	formPeer.DeviceType = wireguard.DeviceTypeServer
+
 	if err := c.ShouldBind(&formPeer); err != nil {
 		_ = s.updateFormInSession(c, formPeer)
 		SetFlashMessage(c, "failed to bind form data: "+err.Error(), "danger")
