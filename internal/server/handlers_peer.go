@@ -423,13 +423,17 @@ func (s *Server) PostUserCreatePeer(c *gin.Context) {
 	formPeer.Email = currentSession.Email;
 	formPeer.Identifier = currentSession.Email;
 	formPeer.DeviceType = wireguard.DeviceTypeServer;
-        formPeer.PrivateKey = "";
 	
 	if err := c.ShouldBind(&formPeer); err != nil {
 		_ = s.updateFormInSession(c, formPeer)
 		SetFlashMessage(c, "failed to bind form data: "+err.Error(), "danger")
 		c.Redirect(http.StatusSeeOther, "/user/peer/create?formerr=bind")
 		return
+	}
+
+	// if public key was manually set, remove the incorrect private key
+	if formPeer.PublicKey != currentSession.FormData.(wireguard.Peer).PublicKey {
+		formPeer.PrivateKey = ""
 	}
 
 	disabled := c.PostForm("isdisabled") != ""
