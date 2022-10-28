@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/arcadie-cracan/wg-portal/internal/common"
+	"github.com/asaskevich/govalidator"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -40,10 +41,14 @@ var cidrList validator.Func = func(fl validator.FieldLevel) bool {
 var dnsList validator.Func = func(fl validator.FieldLevel) bool {
 	dnsListStr := fl.Field().String()
 	dnsList := common.ParseStringList(dnsListStr)
+	validate := binding.Validator.Engine().(*validator.Validate)
 	for i := range dnsList {
 		ip := net.ParseIP(dnsList[i])
-		if ip == nil && !govalidator.IsDNSName(dnsList[i]) {
-			return false
+		if ip == nil {
+			err := validate.Var(dnsList[i], "fqdn")
+			if err != nil {
+				return false
+			}
 		}
 	}
 	return true
