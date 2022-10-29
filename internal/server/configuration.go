@@ -71,6 +71,7 @@ type Config struct {
 		LdapEnabled             bool   `yaml:"ldapEnabled" envconfig:"LDAP_ENABLED"`
 		SessionSecret           string `yaml:"sessionSecret" envconfig:"SESSION_SECRET"`
 		LogoUrl                 string `yaml:"logoUrl" envconfig:"LOGO_URL"`
+		BackgroundTaskInterval  int    `yaml:"backgroundTaskInterval" envconfig:"BACKGROUND_TASK_INTERVAL"` // in seconds
 	} `yaml:"core"`
 	Database common.DatabaseConfig `yaml:"database"`
 	Email    common.MailConfig     `yaml:"email"`
@@ -94,6 +95,7 @@ func NewConfig() *Config {
 	cfg.Core.EditableKeys = true
 	cfg.Core.WGExporterFriendlyNames = false
 	cfg.Core.SessionSecret = "secret"
+	cfg.Core.BackgroundTaskInterval = 15 * 60 // 15 minutes
 
 	cfg.Database.Typ = "sqlite"
 	cfg.Database.Database = "data/wg_portal.db"
