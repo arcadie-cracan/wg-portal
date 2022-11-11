@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/signal"
+	"runtime"
 	"syscall"
 	"time"
 
@@ -19,6 +20,7 @@ func main() {
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM, syscall.SIGHUP)
 
+	logrus.Infof("sysinfo: os=%s, arch=%s", runtime.GOOS, runtime.GOARCH)
 	logrus.Infof("starting WireGuard Portal Server [%s]...", server.Version)
 
 	// Context for clean shutdown
@@ -26,7 +28,7 @@ func main() {
 	defer cancel()
 
 	// start health check service on port 11223
-	healthcheck.New(healthcheck.WithContext(ctx)).Start()
+	healthcheck.New(healthcheck.ListenOn(":11223")).StartWithContext(ctx)
 
 	//myprofile := profile.Start(profile.CPUProfile)
 	service := server.Server{}
