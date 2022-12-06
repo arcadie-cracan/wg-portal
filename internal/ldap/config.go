@@ -25,9 +25,10 @@ type Config struct {
 	PhoneAttribute       string `yaml:"attrPhone" envconfig:"LDAP_ATTR_PHONE"`
 	GroupMemberAttribute string `yaml:"attrGroups" envconfig:"LDAP_ATTR_GROUPS"`
 
-	LoginFilter    string `yaml:"loginFilter" envconfig:"LDAP_LOGIN_FILTER"` // {{login_identifier}} gets replaced with the login email address
-	SyncFilter     string `yaml:"syncFilter" envconfig:"LDAP_SYNC_FILTER"`
-	AdminLdapGroup string `yaml:"adminGroup" envconfig:"LDAP_ADMIN_GROUP"` // Members of this group receive admin rights in WG-Portal
+	LoginFilter     string    `yaml:"loginFilter" envconfig:"LDAP_LOGIN_FILTER"` // {{login_identifier}} gets replaced with the login email address
+	SyncFilter      string    `yaml:"syncFilter" envconfig:"LDAP_SYNC_FILTER"`
+	SyncGroupFilter string    `yaml:"syncGroupFilter" envconfig:"LDAP_SYNC_GROUP_FILTER"`
+	AdminLdapGroup  string    `yaml:"adminGroup" envconfig:"LDAP_ADMIN_GROUP"` // Members of this group receive admin rights in WG-Portal
 	AdminLdapGroup_ *gldap.DN `yaml:"-"`
 	EveryoneAdmin   bool      `yaml:"everyoneAdmin" envconfig:"LDAP_EVERYONE_ADMIN"`
 	LdapCertConn    bool      `yaml:"ldapCertConn" envconfig:"LDAP_CERT_CONN"`
