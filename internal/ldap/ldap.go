@@ -12,11 +12,11 @@ import (
 var lock = &sync.Mutex{}
 var ldapConn *ldap.Conn
 
-type ObjectType int64
+type ObjectType int
 
 const (
-	Users  ObjectType = 1
-	Groups ObjectType = 2
+	Users ObjectType = iota
+	Groups
 )
 
 type RawLdapData struct {
@@ -104,7 +104,8 @@ func FindAllObjects(cfg *Config, objType ObjectType) ([]RawLdapData, error) {
 	var searchRequest *ldap.SearchRequest
 	var attrs []string
 
-	if objType == Users {
+	switch objType {
+	case Users:
 		// Search all users
 		attrs = []string{"dn", cfg.EmailAttribute, cfg.EmailAttribute, cfg.FirstNameAttribute, cfg.LastNameAttribute,
 			cfg.PhoneAttribute, cfg.GroupMemberAttribute}
@@ -113,7 +114,7 @@ func FindAllObjects(cfg *Config, objType ObjectType) ([]RawLdapData, error) {
 			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 			cfg.SyncFilter, attrs, nil,
 		)
-	} else if objType == Groups {
+	case Groups:
 		// Search all groups
 		attrs = []string{"dn", cfg.GroupMemberAttribute}
 		searchRequest = ldap.NewSearchRequest(
@@ -121,6 +122,8 @@ func FindAllObjects(cfg *Config, objType ObjectType) ([]RawLdapData, error) {
 			ldap.ScopeWholeSubtree, ldap.NeverDerefAliases, 0, 0, false,
 			cfg.SyncGroupFilter, attrs, nil,
 		)
+	default:
+		panic("invalid object type")
 	}
 
 	sr, err = client.SearchWithPaging(searchRequest, 100)
