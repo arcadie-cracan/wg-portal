@@ -31,8 +31,10 @@ require (
 )
 
 require (
+	git.prolicht.digital/golib/healthcheck v1.1.1 // indirect
 	github.com/Azure/go-ntlmssp v0.0.0-20221128193559-754e69321358 // indirect
 	github.com/KyleBanks/depth v1.2.1 // indirect
+	github.com/asaskevich/govalidator v0.0.0-20230301143203-a9d515a09cc2 // indirect
 	github.com/dchest/uniuri v1.2.0 // indirect
 	github.com/docker/libcontainer v2.2.1+incompatible // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect

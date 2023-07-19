@@ -9,7 +9,7 @@ import (
 	"syscall"
 	"time"
 
-	"git.prolicht.digital/pub/healthcheck"
+	"git.prolicht.digital/golib/healthcheck"
 	"github.com/arcadie-cracan/wg-portal/internal/server"
 	"github.com/sirupsen/logrus"
 )

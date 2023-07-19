@@ -75,7 +75,7 @@ clean:
 .PHONY: build
 build: build-dependencies
 	CGO_ENABLED=1 $(GOCMD) build -o $(BUILDDIR)/wg-portal \
-	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/h44z/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
+	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/arcadie-cracan/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
 	 -tags netgo \
 	 cmd/wg-portal/main.go
 
@@ -87,7 +87,7 @@ build: build-dependencies
 .PHONY: build-amd64
 build-amd64: build-dependencies
 	CGO_ENABLED=1 $(GOCMD) build -o $(BUILDDIR)/wg-portal-amd64 \
-	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/h44z/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
+	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/arcadie-cracan/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
 	 -tags netgo \
 	 cmd/wg-portal/main.go
 
@@ -99,7 +99,7 @@ build-amd64: build-dependencies
 .PHONY: build-arm64
 build-arm64: build-dependencies
 	CGO_ENABLED=1 CC=aarch64-linux-gnu-gcc GOOS=linux GOARCH=arm64 $(GOCMD) build -o $(BUILDDIR)/wg-portal-arm64 \
-	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/h44z/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
+	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/arcadie-cracan/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
 	 -tags netgo \
 	 cmd/wg-portal/main.go
 
@@ -111,7 +111,7 @@ build-arm64: build-dependencies
 .PHONY: build-arm
 build-arm: build-dependencies
 	CGO_ENABLED=1 CC=arm-linux-gnueabi-gcc GOOS=linux GOARCH=arm GOARM=7 $(GOCMD) build -o $(BUILDDIR)/wg-portal-arm \
-	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/h44z/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
+	 -ldflags "-w -s -extldflags \"-static\" -X 'github.com/arcadie-cracan/wg-portal/internal/server.Version=${ENV_BUILD_IDENTIFIER}-${ENV_BUILD_VERSION}'" \
 	 -tags netgo \
 	 cmd/wg-portal/main.go
 
@@ -126,3 +126,4 @@ build-dependencies:
 	@mkdir -p $(BUILDDIR)
 	cp scripts/wg-portal.service $(BUILDDIR)
 	cp scripts/wg-portal.env $(BUILDDIR)
+    #tar -xzvf scripts/wg-portal-config.tar.gz -C $(BUILDDIR)

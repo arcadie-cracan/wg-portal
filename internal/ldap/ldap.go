@@ -2,7 +2,7 @@ package ldap
 
 import (
 	"crypto/tls"
-	"io/ioutil"
+	"os"
 	"sync"
 
 	"github.com/go-ldap/ldap/v3"
@@ -99,7 +99,6 @@ func FindAllObjects(cfg *Config, objType ObjectType) ([]RawLdapData, error) {
 	if err != nil {
 		return nil, errors.WithMessage(err, "failed to open ldap connection")
 	}
-	defer Close(client)
 
 	var searchRequest *ldap.SearchRequest
 	var attrs []string
