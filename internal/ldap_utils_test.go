@@ -21,7 +21,8 @@ func TestLdapConvertEntries_UserIdentifierFallback(t *testing.T) {
 
 	users := LdapConvertEntries(sr, fields)
 
-	assert.Equal(t, "a@example.com", users[0]["mail"])
-	assert.Equal(t, "b@example.com", users[1]["mail"])
+	assert.Equal(t, "a@example.com", LdapUserIdentifier(users[0], "mail"))
+	assert.Equal(t, "b@example.com", LdapUserIdentifier(users[1], "mail"))
+	assert.Equal(t, "", users[1]["mail"], "the email stays empty")
 	assert.Contains(t, LdapSearchAttributes(fields), "userPrincipalName")
 }

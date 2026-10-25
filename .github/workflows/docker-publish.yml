@@ -6,7 +6,7 @@ on:
   push:
     branches: [master]
     # Publish vX.X.X tags as releases.
-    tags: ["v*.*.*"]
+    tags: ["v*.*.*", "!v*-etti.*"]
 
 permissions:
   contents: read

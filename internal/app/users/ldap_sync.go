@@ -306,7 +306,7 @@ func (m Manager) updateInterfaceLdapFilters(
 }
 
 func ldapUserIdentifier(rawUser map[string]any, field string) domain.UserIdentifier {
-	identifier := internal.MapDefaultString(rawUser, field, "")
+	identifier := internal.LdapUserIdentifier(rawUser, field)
 	identifier = domain.SanitizeIdentifier(identifier, 256)
 	if identifier == "" {
 		return ""

@@ -139,7 +139,7 @@ func (l LdapAuthenticator) ParseUserInfo(raw map[string]any) (*domain.Authentica
 	}
 
 	userInfo := &domain.AuthenticatorUserInfo{
-		Identifier:         domain.UserIdentifier(internal.MapDefaultString(raw, l.cfg.FieldMap.UserIdentifier, "")),
+		Identifier:         domain.UserIdentifier(internal.LdapUserIdentifier(raw, l.cfg.FieldMap.UserIdentifier)),
 		Email:              internal.MapDefaultString(raw, l.cfg.FieldMap.Email, ""),
 		Firstname:          internal.MapDefaultString(raw, l.cfg.FieldMap.Firstname, ""),
 		Lastname:           internal.MapDefaultString(raw, l.cfg.FieldMap.Lastname, ""),

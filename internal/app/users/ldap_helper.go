@@ -26,7 +26,7 @@ func convertRawLdapUser(
 		return nil, fmt.Errorf("failed to check admin group: %w", err)
 	}
 
-	uid := domain.UserIdentifier(internal.MapDefaultString(rawUser, fields.UserIdentifier, ""))
+	uid := domain.UserIdentifier(internal.LdapUserIdentifier(rawUser, fields.UserIdentifier))
 
 	user := &domain.User{
 		BaseModel: domain.BaseModel{

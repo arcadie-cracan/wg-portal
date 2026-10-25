@@ -14,6 +14,19 @@ import (
 
 type RawLdapUser map[string]any
 
+// LdapIdentifierFallbackKey holds the value of the user_identifier_fallback attribute in a RawLdapUser. It has its
+// own key because the user_identifier attribute is often mapped to other fields too (mail is also the email).
+const LdapIdentifierFallbackKey = "_wgportal_user_identifier_fallback"
+
+// LdapUserIdentifier returns the raw user's identifier: the value of the given field or, if that is empty,
+// the value of the user_identifier_fallback attribute.
+func LdapUserIdentifier(rawUser map[string]any, field string) string {
+	if identifier := MapDefaultString(rawUser, field, ""); identifier != "" {
+		return identifier
+	}
+	return MapDefaultString(rawUser, LdapIdentifierFallbackKey, "")
+}
+
 func LdapFindAllUsers(conn *ldap.Conn, baseDn, filter string, fields *config.LdapFields) ([]RawLdapUser, error) {
 	// Search all users
 	attrs := LdapSearchAttributes(fields)
@@ -88,8 +101,8 @@ func LdapConvertEntries(sr *ldap.SearchResult, fields *config.LdapFields) []RawL
 	for i, entry := range sr.Entries {
 		userData := make(RawLdapUser)
 		userData[fields.UserIdentifier] = entry.GetAttributeValue(fields.UserIdentifier)
-		if userData[fields.UserIdentifier] == "" && fields.UserIdentifierFallback != "" {
-			userData[fields.UserIdentifier] = strings.ToLower(entry.GetAttributeValue(fields.UserIdentifierFallback))
+		if fields.UserIdentifierFallback != "" {
+			userData[LdapIdentifierFallbackKey] = strings.ToLower(entry.GetAttributeValue(fields.UserIdentifierFallback))
 		}
 		userData[fields.Email] = entry.GetAttributeValue(fields.Email)
 		userData[fields.Firstname] = entry.GetAttributeValue(fields.Firstname)
