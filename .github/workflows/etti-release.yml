@@ -1,0 +1,51 @@
+# ETTI builds of the etti-v2 branch: on a v*-etti.* tag, test and build the static
+# linux/amd64 binary the way the Dockerfile does and attach it, with its sha256, to a release.
+name: etti-release
+
+on:
+  push:
+    tags: ["v*-etti.*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+
+      - name: Frontend
+        working-directory: frontend
+        env:
+          DIST_OUT_DIR: dist
+        run: |
+          npm ci
+          npm run build
+          rm -rf ../internal/app/api/core/frontend-dist
+          cp -r dist ../internal/app/api/core/frontend-dist
+
+      - name: Test
+        run: go test ./internal/...
+
+      - name: Build
+        run: |
+          CGO_ENABLED=0 GOARCH=amd64 go build -o wg-portal_linux_amd64 \
+            -ldflags "-w -s -extldflags '-static' -X 'github.com/h44z/wg-portal/internal.Version=${GITHUB_REF_NAME}'" \
+            -tags netgo cmd/wg-portal/main.go
+          sha256sum wg-portal_linux_amd64 | tee wg-portal_linux_amd64.sha256
+
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" wg-portal_linux_amd64 wg-portal_linux_amd64.sha256 \
+            --title "$GITHUB_REF_NAME" --notes-file .github/etti-release-notes.md

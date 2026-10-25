@@ -124,6 +124,9 @@ type LdapFields struct {
 	BaseFields `yaml:",inline"`
 	// GroupMembership is the name of the LDAP field that contains the groups to which the user belongs.
 	GroupMembership string `yaml:"memberof"`
+	// UserIdentifierFallback is the name of the LDAP field used as the user identifier (lowercased) when the
+	// UserIdentifier field is empty, e.g. userPrincipalName for Active Directory accounts without a mail address.
+	UserIdentifierFallback string `yaml:"user_identifier_fallback"`
 }
 
 // getMappingWithDefaults returns a full field mapping for the LDAP provider.
@@ -161,6 +164,7 @@ func (f LdapFields) getMappingWithDefaults() LdapFields {
 	if f.GroupMembership != "" {
 		defaultMap.GroupMembership = f.GroupMembership
 	}
+	defaultMap.UserIdentifierFallback = f.UserIdentifierFallback
 
 	return defaultMap
 }

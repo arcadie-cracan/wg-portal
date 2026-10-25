@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"strings"
 
 	"github.com/go-ldap/ldap/v3"
 
@@ -87,6 +88,9 @@ func LdapConvertEntries(sr *ldap.SearchResult, fields *config.LdapFields) []RawL
 	for i, entry := range sr.Entries {
 		userData := make(RawLdapUser)
 		userData[fields.UserIdentifier] = entry.GetAttributeValue(fields.UserIdentifier)
+		if userData[fields.UserIdentifier] == "" && fields.UserIdentifierFallback != "" {
+			userData[fields.UserIdentifier] = strings.ToLower(entry.GetAttributeValue(fields.UserIdentifierFallback))
+		}
 		userData[fields.Email] = entry.GetAttributeValue(fields.Email)
 		userData[fields.Firstname] = entry.GetAttributeValue(fields.Firstname)
 		userData[fields.Lastname] = entry.GetAttributeValue(fields.Lastname)
@@ -119,6 +123,9 @@ func LdapSearchAttributes(fields *config.LdapFields) []string {
 	}
 	if fields.GroupMembership != "" {
 		attrs = append(attrs, fields.GroupMembership)
+	}
+	if fields.UserIdentifierFallback != "" {
+		attrs = append(attrs, fields.UserIdentifierFallback)
 	}
 
 	return UniqueStringSlice(attrs)

@@ -767,7 +767,7 @@ Below are the properties for each LDAP provider entry inside `auth.ldap`:
 #### `field_map`
 - **Default:** *(empty)*
 - **Description:** Maps LDAP attributes to WireGuard Portal fields.
-    - Available fields: `user_identifier`, `email`, `firstname`, `lastname`, `phone`, `department`, `memberof`.
+    - Available fields: `user_identifier`, `email`, `firstname`, `lastname`, `phone`, `department`, `memberof`, `user_identifier_fallback`.
   
       | **WireGuard Portal Field** | **Typical LDAP Attribute** | **Short Description**                                        |
       |----------------------------|----------------------------|--------------------------------------------------------------|
@@ -778,6 +778,7 @@ Below are the properties for each LDAP provider entry inside `auth.ldap`:
       | phone                      | telephoneNumber / mobile   | Holds the user's phone or mobile number.                     |
       | department                 | departmentNumber / ou      | Specifies the department or organizational unit of the user. |
       | memberof                   | memberOf                   | Lists the groups and roles to which the user belongs.        |
+      | user_identifier_fallback   | userPrincipalName          | Used (lowercased) as the identifier when user_identifier is empty. |
 
 #### `login_filter`
 - **Default:** *(empty)*
